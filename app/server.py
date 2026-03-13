@@ -10,7 +10,9 @@ class WebhookPayload(BaseModel):
     passphrase: str
     symbol: str
     action: str  # BUY or SELL
-    reason: str = "External Webhook Signal"app = FastAPI(title="Crypto Bot Dashboard")
+    reason: str = "External Webhook Signal"
+
+app = FastAPI(title="Crypto Bot Dashboard")
 
 # Get the absolute path to the templates directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
