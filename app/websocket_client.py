@@ -17,7 +17,7 @@ class WebSocketClient:
             formatted = symbol.replace('/', '').lower()
             streams.append(f"{formatted}@ticker")
         
-        return f"wss://stream.binance.com:9443/ws/{'/'.join(streams)}"
+        return f"wss://data-stream.binance.vision/ws/{'/'.join(streams)}"
 
     def _listen(self):
         url = self._get_stream_url()

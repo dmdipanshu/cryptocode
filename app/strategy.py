@@ -86,10 +86,11 @@ class Strategy:
             
             # 3. AI Prediction
             features = ['RSI_14', 'Returns', 'Volatility', 'Vol_Ratio', 'Dist_EMA9', 'Dist_EMA21']
-            current_features = current_row[features].values.reshape(1, -1)
+            # Prepare input for prediction as a DataFrame to keep feature names
+            current_features_df = pd.DataFrame([current_row[features]])
             
             # Predict probability of class '1' (Price going UP)
-            prob_up = model.predict_proba(current_features)[0][1]
+            prob_up = model.predict_proba(current_features_df)[0][1]
             prob_down = 1 - prob_up
             
             # 4. Standard Strategy Metrics
@@ -106,15 +107,12 @@ class Strategy:
             reason = 'No Setup'
             
             # BUY CONDITIONS:
-            # 1. EMA Fast crossed above EMA Slow
-            # 2. RSI is not overbought (< 70)
-            # 3. Volume spike confirmed (Current volume > 1.5x average)
-            # 4. AI Confidence is strictly > 55%
+            # Low thresholds for "High Frequency" / Active Automation
             if prev_ema_short < prev_ema_long and ema_short > ema_long:
-                if current_rsi < 70 and vol_ratio > 1.5:
-                    if prob_up > 0.55:
+                if current_rsi < 70 and vol_ratio > 1.0: # Vol ratio down from 1.5
+                    if prob_up > 0.45: # AI Prob down from 0.55
                         signal = 'BUY'
-                        reason = f'EMA Cross + High Volume + AI Confidence: {prob_up*100:.1f}%'
+                        reason = f'EMA Cross + Vol: {vol_ratio:.2f} + AI: {prob_up*100:.1f}%'
                     else:
                         reason = f'EMA Cross ignored: AI predicted bearish ({prob_down*100:.1f}%)'
                         print(f"[{symbol}] {reason}")
