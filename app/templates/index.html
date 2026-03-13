@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Bot Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #4ecca3;
+            border-bottom: 2px solid #4ecca3;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background-color: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .alert-banner {
+            background-color: #e94560;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-item {
+            background-color: #1f2e54;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .wallet-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ecca3;
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        th {
+            color: #e94560;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        .positive {
+            color: #4ecca3;
+        }
+
+        .negative {
+            color: #e94560;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .bg-buy {
+            background-color: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+        }
+
+        .bg-sell {
+            background-color: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 Crypto Bot Dashboard</h1>
+
+        {% if is_paper_trading %}
+        <div class="alert-banner">
+            🧪 PAPER TRADING MODE ACTIVE
+        </div>
+
+        <div class="wallet-grid">
+            <div class="wallet-item">
+                <div style="color: #a0aabf; font-size: 14px; text-transform: uppercase;">Available Fake USDT</div>
+                <div class="wallet-value">${{ "%.2f"|format(wallet.get('USDT', 0)) }}</div>
+            </div>
+            <div class="wallet-item" style="border: 2px solid #4ecca3;">
+                <div style="color: #a0aabf; font-size: 14px; text-transform: uppercase;">Total Virtual Equity</div>
+                <div class="wallet-value">${{ "%.2f"|format(total_equity) }}</div>
+                <div style="font-size: 11px; margin-top: 4px; color: #888;">(USDT + Active Positions)</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h2>📈 Active Positions</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Amount</th>
+                        <th>Entry Price</th>
+                        <th>Highest Seen</th>
+                        <th>DCA Count</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pos in positions %}
+                    <tr>
+                        <td><strong>{{ pos.symbol }}</strong></td>
+                        <td>{{ pos.amount }}</td>
+                        <td>${{ "%.2f"|format(pos.entry_price) }}</td>
+                        <td>${{ "%.2f"|format(pos.highest_price) }}</td>
+                        <td>{{ pos.dca_count }}/2</td>
+                        <td>{{ pos.updated_at.strftime('%Y-%m-%d %H:%M:%S') if pos.updated_at else 'Memory' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align:center;">No active positions right now. Waiting for setups...
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📜 Recent Trade History</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Symbol</th>
+                        <th>Action</th>
+                        <th>Price</th>
+                        <th>Reason</th>
+                        <th>Est PnL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in history %}
+                    <tr>
+                        <td>{{ trade.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td><strong>{{ trade.symbol }}</strong></td>
+                        <td><span class="badge {{ 'bg-buy' if trade.side == 'BUY' else 'bg-sell' }}">{{ trade.side
+                                }}</span></td>
+                        <td>${{ "%.2f"|format(trade.price) }}</td>
+                        <td>{{ trade.reason }}</td>
+                        <td class="{{ 'positive' if trade.pnl_pct > 0 else 'negative' if trade.pnl_pct < 0 else '' }}">
+                            {{ "%.2f"|format(trade.pnl_pct) }}%
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align:center;">No completed trades recorded in history yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh the page every 60 seconds
+        setTimeout(function () {
+            window.location.reload();
+        }, 60000);
+    </script>
+</body>
+
+</html>
