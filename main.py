@@ -6,17 +6,36 @@ from app.database import db
 from app.notifier import notifier
 from app.exchange import exchange_api
 from app.strategy import strategy
+from app.websocket_client import ws_client
 from app.server import app
 
 def calculate_buy_amount(symbol, current_price, balance):
-    """Calculates how much of a coin to buy based on RISK_PERCENTAGE of the Paper Wallet"""
+    """
+    Calculates dynamic size based on Volatility (ATR).
+    If market is volatile, we take smaller positions.
+    """
     quote_currency = symbol.split('/')[1]
     available_quote = balance['free'].get(quote_currency, 0)
     
     if available_quote <= 0:
         return 0
         
-    spend_amount = available_quote * config.RISK_PERCENTAGE
+    atr = strategy.get_market_volatility(symbol)
+    
+    # Base risk (e.g., 10% of portfolio)
+    base_risk_amount = available_quote * config.RISK_PERCENTAGE
+    
+    # Volatility Adjustment:
+    # If ATR is high (volatile), we reduce the size. 
+    # Normalizing factor (e.g., if ATR is 1% of price, sizing is normal)
+    if atr > 0:
+        volatility_factor = (current_price * 0.01) / atr
+        # Clamp factor between 0.5x and 1.5x to avoid extremes
+        volatility_factor = max(0.5, min(1.5, volatility_factor))
+        spend_amount = base_risk_amount * volatility_factor
+    else:
+        spend_amount = base_risk_amount
+
     coin_amount = spend_amount / current_price
     return round(coin_amount, 5)
 
@@ -104,13 +123,37 @@ def bot_loop():
     print("=======================================")
     notifier.send_telegram_message(startup_msg)
     
+    last_summary_time = time.time()
+    
     while True:
         try:
+            # Send Daily Summary every 24h
+            if time.time() - last_summary_time > 86400:
+                wallet = db.get_wallet_balances()
+                active_positions = db.get_all_active_positions()
+                equity = wallet.get('USDT', 0)
+                for p in active_positions: equity += (p['amount'] * p['entry_price'])
+                
+                summary = (
+                    f"📊 <b>Daily Performance Report</b>\n"
+                    f"Total Equity: ${equity:.2f} USDT\n"
+                    f"Available: ${wallet.get('USDT', 0):.2f} USDT\n"
+                    f"Open Positions: {len(active_positions)}"
+                )
+                notifier.send_telegram_message(summary)
+                last_summary_time = time.time()
             for symbol in config.SYMBOLS:
                 pos = db.get_position(symbol)
                 
+                # HFT: Use WebSocket real-time price if available, fallback to REST for strategy analyze
+                realtime_price = ws_client.get_price(symbol)
+                
                 signal, current_price, reason = strategy.analyze_market(symbol)
                 
+                # Update current_price to the most recent HFT price if we have it
+                if realtime_price > 0:
+                    current_price = realtime_price
+
                 # If the strategy failed to get a price (API limit or error), skip to next symbol
                 if current_price == 0.0:
                     continue
@@ -146,10 +189,13 @@ def bot_loop():
         except Exception as e:
             notifier.send_telegram_message(f"Critical error in main loop: {e}")
             
-        print(f"\n⏳ Sleeping for {config.TIMEFRAME}...\n")
-        time.sleep(60 * 5) # 5 Minutes
+        print(f"\n⏳ Sleeping for 1m (HFT Engine active)...\n")
+        time.sleep(60) # 1 Minute for HFT feel
 
 if __name__ == "__main__":
+    # Start WebSocket client
+    ws_client.start()
+    
     # Start the trading engine in a background thread
     trading_thread = threading.Thread(target=bot_loop, daemon=True)
     trading_thread.start()

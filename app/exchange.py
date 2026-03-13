@@ -3,7 +3,7 @@ from app.database import db
 
 class ExchangeAPI:
     def __init__(self):
-        self.base_url = "https://api.binance.com/api/v3"
+        self.base_url = "https://data-api.binance.vision/api/v3"
         
     def fetch_ohlcv(self, symbol, timeframe, limit=100):
         """Fetches historical candlestick data using Binance's public, free REST API"""

@@ -25,6 +25,7 @@ class Strategy:
         df.ta.ema(length=9, append=True)
         df.ta.ema(length=21, append=True)
         df.ta.rsi(length=14, append=True)
+        df.ta.atr(length=14, append=True) # Average True Range for volatility sizing
         
         # Volatility / Momentum Features
         df['Returns'] = df['close'].pct_change()
@@ -148,5 +149,13 @@ class Strategy:
             return True, f"Price dropped {drop_pct*100:.2f}% from entry. DCA step {dca_count+1}/2 triggered."
             
         return False, "Drop not deep enough"
+
+    def get_market_volatility(self, symbol):
+        """Returns the current ATR value for a symbol"""
+        df_raw = self.get_historical_data(symbol, config.TIMEFRAME, limit=100)
+        if df_raw.empty: return 0.0
+        df = self.prepare_ml_features(df_raw)
+        if df.empty: return 0.0
+        return df.iloc[-1]['ATRr_14']
 
 strategy = Strategy()

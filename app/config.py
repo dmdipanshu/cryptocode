@@ -7,7 +7,7 @@ class Config:
     # Trading Config
     SYMBOLS_ENV = os.environ.get('SYMBOLS', 'BTC/USDT,ETH/USDT,SOL/USDT')
     SYMBOLS = [s.strip() for s in SYMBOLS_ENV.split(',') if s.strip()]
-    TIMEFRAME = os.environ.get('TIMEFRAME', '15m')
+    TIMEFRAME = os.environ.get('TIMEFRAME', '1m')
     
     # Risk Management
     STOP_LOSS_PCT = float(os.environ.get('STOP_LOSS_PCT', '0.02'))
@@ -20,5 +20,6 @@ class Config:
     MONGO_URI = os.environ.get('MONGO_URI', None)
     TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
     TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
+    WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE', 'secret_webhook_key_123')
 
 config = Config()
