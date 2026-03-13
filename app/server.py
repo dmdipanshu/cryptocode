@@ -68,7 +68,7 @@ async def get_stats():
         
     return {
         "equity_curve": equity_curve,
-        "labels": ["" for _ in equity_curve]
+        "labels": [trade.get('timestamp').strftime('%H:%M') if trade.get('timestamp') else "" for trade in reversed(history)] + ["Now"]
     }
 
 @app.get("/api/status")

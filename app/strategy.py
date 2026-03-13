@@ -107,10 +107,10 @@ class Strategy:
             reason = 'No Setup'
             
             # BUY CONDITIONS:
-            # Low thresholds for "High Frequency" / Active Automation
-            if prev_ema_short < prev_ema_long and ema_short > ema_long:
-                if current_rsi < 70 and vol_ratio > 1.0: # Vol ratio down from 1.5
-                    if prob_up > 0.45: # AI Prob down from 0.55
+            # Shift from "Crossover only" to "Trend Following" for more activity
+            if ema_short > ema_long:
+                if current_rsi < 70 and (vol_ratio > 0.5 or vol_ratio == 0): # Very lenient volume
+                    if prob_up > 0.40: # AI Prob down from 0.45
                         signal = 'BUY'
                         reason = f'EMA Cross + Vol: {vol_ratio:.2f} + AI: {prob_up*100:.1f}%'
                     else:
